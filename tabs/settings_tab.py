@@ -11,8 +11,8 @@ def build_settings_tab(page, refresh_main_callback):
         import sqlite3
         con = sqlite3.connect(db.DB_PATH)
         cur = con.cursor()
-        cur.execute("SELECT id, name, color, start_date, end_date, description FROM habits")
-        habits = [dict(zip(["id","name","color","start_date","end_date","description"], r)) for r in cur.fetchall()]
+        cur.execute("SELECT id, name, color, start_date, end_date, status FROM habits")
+        habits = [dict(zip(["id","name","color","start_date","end_date","status"], r)) for r in cur.fetchall()]
         cur.execute("SELECT id, habit_id, date, status FROM entries")
         entries = [dict(zip(["id","habit_id","date","status"], r)) for r in cur.fetchall()]
         con.close()
@@ -37,8 +37,8 @@ def build_settings_tab(page, refresh_main_callback):
         cur = con.cursor()
         # naive import: append habits, entries
         for h in data.get("habits", []):
-            cur.execute("INSERT INTO habits (name, color, start_date, end_date, description) VALUES (?, ?, ?, ?, ?)",
-                        (h.get("name"), h.get("color"), h.get("start_date"), h.get("end_date"), h.get("description")))
+            cur.execute("INSERT INTO habits (name, color, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)",
+                (h.get("name"), h.get("color"), h.get("start_date"), h.get("end_date"), h.get("status", 'в процессе')))
         con.commit()
         for en in data.get("entries", []):
             cur.execute("INSERT OR IGNORE INTO entries (habit_id, date, status) VALUES (?, ?, ?)",

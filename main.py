@@ -12,7 +12,11 @@ def main(page: Page):
     active_tab = [0]
     content_column = Column(expand=True, spacing=0)
 
+    # def refresh_main(_=None):
+    #     load_tab(active_tab[0])
+
     def refresh_main(_=None):
+        print("Calling refresh_main")  # Отладочный вывод
         load_tab(active_tab[0])
 
     def make_tab_button(i, label, icon):

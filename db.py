@@ -17,7 +17,7 @@ def ensure_db():
         color TEXT NOT NULL,
         start_date TEXT,  -- YYYY-MM-DD or NULL
         end_date TEXT,
-        description TEXT
+        status TEXT CHECK(status IN ('в процессе', 'выполнено', 'заброшено')) NOT NULL DEFAULT 'в процессе'
     )
     """)
     # entries: id, habit_id, date (YYYY-MM-DD), status (in_progress, done, skipped, overdue)
@@ -41,8 +41,8 @@ def add_habit(habit: Dict[str, Any]) -> int:
     con = get_conn()
     cur = con.cursor()
     cur.execute(
-        "INSERT INTO habits (name, color, start_date, end_date, description) VALUES (?, ?, ?, ?, ?)",
-        (habit["name"], habit["color"], habit.get("start_date"), habit.get("end_date"), habit.get("description"))
+        "INSERT INTO habits (name, color, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)",
+        (habit["name"], habit["color"], habit.get("start_date"), habit.get("end_date"), habit.get("status"))
     )
     hid = cur.lastrowid
     con.commit()
@@ -69,19 +69,19 @@ def delete_habit(habit_id: int):
 def get_all_habits() -> List[Dict]:
     con = get_conn()
     cur = con.cursor()
-    cur.execute("SELECT id, name, color, start_date, end_date, description FROM habits")
+    cur.execute("SELECT id, name, color, start_date, end_date, status FROM habits")
     rows = cur.fetchall()
     con.close()
-    return [{"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "description": r[5]} for r in rows]
+    return [{"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "status": r[5]} for r in rows]
 
 def get_habit(hid: int) -> Dict:
     con = get_conn()
     cur = con.cursor()
-    cur.execute("SELECT id, name, color, start_date, end_date, description FROM habits WHERE id=?", (hid,))
+    cur.execute("SELECT id, name, color, start_date, end_date, status FROM habits WHERE id=?", (hid,))
     r = cur.fetchone()
     con.close()
     if not r: return None
-    return {"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "description": r[5]}
+    return {"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "status": r[5]}
 
 def set_entry(habit_id: int, date: str, status: str):
     con = get_conn()
