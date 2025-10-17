@@ -1,11 +1,9 @@
-
 # tabs/week_tab.py
 import datetime
 from flet import (
     Column, Row, Container, Text, IconButton, Checkbox,
     ElevatedButton, Icons, alignment, border, AlertDialog,
-    TextField, Dropdown, dropdown, TextButton, SnackBar,
-    Colors
+    TextField, Dropdown, dropdown, TextButton, SnackBar
 )
 from models import date_to_str, today, week_dates
 import db
@@ -27,13 +25,7 @@ def get_week_habits(start_date):
                     for entry in entries:
                         if entry["habit_id"] == habit["id"] and entry["date"] == ds and entry["status"] == "done":
                             days[i] = True
-                result.append({
-                    "name": habit["name"],
-                    "id": habit["id"],
-                    "color": habit["color"],
-                    "days": days,
-                    "status": habit["status"]
-                })
+                result.append({"name": habit["name"], "id": habit["id"], "color": habit["color"], "days": days})
         except (ValueError, TypeError):
             continue
     return result
@@ -67,29 +59,12 @@ def build_week_tab(page, refresh_main_callback):
         habit_rows = []
         if habits:
             for habit in habits:
-                # Определяем цвет текста в зависимости от статуса
-                text_color = (
-                    Colors.GREEN if habit["status"] == "выполнено"
-                    else Colors.RED if habit["status"] == "заброшено"
-                    else Colors.WHITE  # для "в процессе"
-                )
-                habit_name_container = Row(
-                    [
-                        Text(habit["name"], color=text_color),
-                        IconButton(Icons.EDIT, on_click=lambda e, h=habit: edit_habit(e, h)),
-                        IconButton(Icons.DELETE, on_click=lambda e, h=habit: delete_habit(e, h)),
-                    ],
-                    spacing=4,
-                )
                 row = Row(
                     [
-                        Container(habit_name_container, width=160),
+                        Container(Text(habit["name"]), width=160),
                         *[
                             Container(
-                                Checkbox(
-                                    value=habit["days"][i],
-                                    on_change=lambda e, day_idx=i, h_id=habit["id"]: checkbox_changed(e, day_idx, h_id)
-                                ),
+                                Checkbox(value=habit["days"][i]),
                                 alignment=alignment.center,
                                 expand=True,
                             )
@@ -128,18 +103,6 @@ def build_week_tab(page, refresh_main_callback):
         content.controls.clear()
         content.controls.append(Column([nav_row, header_row, *habit_rows], spacing=10))
         page.update()
-
-    # Обработчик изменения чекбокса
-    def checkbox_changed(e, day_idx, habit_id):
-        week_start = current_week_start[0]
-        week_days = [(week_start + datetime.timedelta(days=i)) for i in range(7)]
-        ds = date_to_str(week_days[day_idx])
-        status = "done" if e.control.value else "skipped"
-        db.set_entry(habit_id, ds, status)
-        page.snack_bar = SnackBar(content=Text(f"Статус обновлён для {ds}"))
-        page.snack_bar.open = True
-        page.update()
-        # Опционально: refresh_view() если нужно обновить вид сразу
 
     # Обработчики кнопок
     def prev_week(e):
@@ -225,126 +188,6 @@ def build_week_tab(page, refresh_main_callback):
                 content=Column([title_input, status_input, color_input, start_input, end_input], spacing=10),
                 actions=[
                     TextButton("Добавить", on_click=save_habit),
-                    TextButton("Отмена", on_click=cancel)
-                ],
-                modal=True
-            )
-
-            page.overlay.append(dialog)
-            dialog.open = True
-            page.update()
-
-        except Exception as ex:
-            page.snack_bar = SnackBar(content=Text(f"Ошибка: {str(ex)}"))
-            page.snack_bar.open = True
-            page.update()
-
-    def edit_habit(e, habit):
-        try:
-            # Очищаем overlay от предыдущих диалогов
-            if hasattr(page, 'overlay') and page.overlay:
-                page.overlay[:] = [x for x in page.overlay if not isinstance(x, AlertDialog)]
-
-            # Поля формы с предзаполненными значениями
-            title_input = TextField(label="Название привычки", value=habit["name"])
-            status_input = Dropdown(
-                label="Статус",
-                options=[
-                    dropdown.Option("в процессе"),
-                    dropdown.Option("выполнено"),
-                    dropdown.Option("заброшено"),
-                ],
-                value=habit.get("status", "в процессе")
-            )
-            color_input = Dropdown(
-                label="Цвет",
-                options=[
-                    dropdown.Option("red", "Красный"),
-                    dropdown.Option("green", "Зелёный"),
-                    dropdown.Option("blue", "Синий"),
-                    dropdown.Option("yellow", "Жёлтый"),
-                ],
-                value=habit["color"]
-            )
-            start_input = TextField(label="Дата начала (ГГГГ-ММ-ДД)", value=habit.get("start_date", ""))
-            end_input = TextField(label="Дата окончания (ГГГГ-ММ-ДД)", value=habit.get("end_date", ""))
-
-            # Сохранение изменений
-            def save_edit(e):
-                try:
-                    if not title_input.value.strip():
-                        page.snack_bar = SnackBar(content=Text("Введите название привычки!"))
-                        page.snack_bar.open = True
-                        page.update()
-                        return
-
-                    fields = {
-                        "name": title_input.value,
-                        "status": status_input.value,
-                        "color": color_input.value,
-                        "start_date": start_input.value if start_input.value.strip() else None,
-                        "end_date": end_input.value if end_input.value.strip() else None
-                    }
-                    db.update_habit(habit["id"], fields)
-
-                    # Закрываем диалог
-                    dialog.open = False
-                    page.update()
-
-                    # Обновляем вид
-                    refresh_view()
-
-                except Exception as ex:
-                    page.snack_bar = SnackBar(content=Text(f"Ошибка сохранения: {str(ex)}"))
-                    page.snack_bar.open = True
-                    page.update()
-
-            # Отмена
-            def cancel(e):
-                dialog.open = False
-                page.update()
-
-            # Создаём диалог
-            dialog = AlertDialog(
-                title=Text("Изменить привычку"),
-                content=Column([title_input, status_input, color_input, start_input, end_input], spacing=10),
-                actions=[
-                    TextButton("Сохранить", on_click=save_edit),
-                    TextButton("Отмена", on_click=cancel)
-                ],
-                modal=True
-            )
-
-            page.overlay.append(dialog)
-            dialog.open = True
-            page.update()
-
-        except Exception as ex:
-            page.snack_bar = SnackBar(content=Text(f"Ошибка: {str(ex)}"))
-            page.snack_bar.open = True
-            page.update()
-
-    def delete_habit(e, habit):
-        try:
-            # Подтверждение удаления
-            def confirm_delete(e):
-                db.delete_habit(habit["id"])
-                dialog.open = False
-                page.update()
-                refresh_view()
-                page.snack_bar = SnackBar(content=Text("Привычка удалена"))
-                page.snack_bar.open = True
-                page.update()
-
-            def cancel(e):
-                dialog.open = False
-                page.update()
-
-            dialog = AlertDialog(
-                title=Text("Удалить привычку?"),
-                content=Text(f"Вы уверены, что хотите удалить '{habit['name']}'? Это удалит все связанные записи."),
-                actions=[
-                    TextButton("Удалить", on_click=confirm_delete),
                     TextButton("Отмена", on_click=cancel)
                 ],
                 modal=True
