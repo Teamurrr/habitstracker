@@ -46,6 +46,9 @@ def build_week_tab(page, refresh_main_callback):
         week_start = current_week_start[0]
         week_days = [(week_start + datetime.timedelta(days=i)) for i in range(7)]
         habits = get_week_habits(week_start)
+        
+        # Определяем сегодняшнюю дату
+        today_date = datetime.date.today()
 
         # Заголовок дней недели
         header_row = Row(
@@ -53,9 +56,17 @@ def build_week_tab(page, refresh_main_callback):
                 Container(Text("", size=14, weight="bold"), width=200),
                 *[
                     Container(
-                        Text(day.strftime("%a\n%d.%m"), size=13, weight="bold"),
+                        Text(
+                            day.strftime("%a\n%d.%m"), 
+                            size=13, 
+                            weight="bold",
+                            color=Colors.BLUE if day == today_date else Colors.WHITE  # Выделяем сегодняшний день
+                        ),
                         alignment=alignment.center,
                         expand=True,
+                        bgcolor=Colors.BLUE_100 if day == today_date else Colors.TRANSPARENT,  # Фон для сегодняшнего дня
+                        border_radius=5 if day == today_date else 0,
+                        padding=5 if day == today_date else 0,
                     )
                     for day in week_days
                 ],
@@ -132,6 +143,8 @@ def build_week_tab(page, refresh_main_callback):
                                 ),
                                 alignment=alignment.center,
                                 expand=True,
+                                bgcolor=Colors.BLUE_50 if week_days[i] == today_date else Colors.TRANSPARENT,  # Выделяем сегодняшний день
+                                border_radius=5 if week_days[i] == today_date else 0,
                             )
                             for i in range(7)
                         ],
@@ -154,11 +167,12 @@ def build_week_tab(page, refresh_main_callback):
             [
                 IconButton(Icons.ARROW_BACK, on_click=prev_week),
                 Text(
-                    f"Неделя {week_days[0].strftime('%d.%m')} – {week_days[-1].strftime('%d.%m')}",
+                    f"{week_days[0].strftime('%B %Y')} | Неделя {week_days[0].strftime('%d.%m')} – {week_days[-1].strftime('%d.%m')}",
                     size=15, weight="bold"
                 ),
                 IconButton(Icons.ARROW_FORWARD, on_click=next_week),
                 Container(expand=True),
+                ElevatedButton("Сегодня", icon=Icons.TODAY, on_click=go_to_today),
                 ElevatedButton("Добавить привычку", icon=Icons.ADD, on_click=add_habit)
             ],
             alignment="spaceBetween",
@@ -188,6 +202,10 @@ def build_week_tab(page, refresh_main_callback):
 
     def next_week(e):
         current_week_start[0] += datetime.timedelta(days=7)
+        refresh_view()
+
+    def go_to_today(e):
+        current_week_start[0] = datetime.date.today() - datetime.timedelta(days=datetime.date.today().weekday())
         refresh_view()
 
     def add_habit(e):
