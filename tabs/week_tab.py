@@ -31,7 +31,8 @@ def get_week_habits(start_date):
                     "id": habit["id"],
                     "color": habit["color"],
                     "days": days,
-                    "status": habit["status"]
+                    "status": habit["status"],
+                    "notification_interval": habit.get("notification_interval", "Без уведомлений")
                 })
         except (ValueError, TypeError):
             continue
@@ -219,6 +220,20 @@ def build_week_tab(page, refresh_main_callback):
             start_input = TextField(label="Дата начала (ГГГГ-ММ-ДД)", value=date_to_str(today()))
             end_input = TextField(label="Дата окончания (ГГГГ-ММ-ДД)", value="")
 
+            notification_input = Dropdown(
+                label="Частота уведомлений",
+                options=[
+                    dropdown.Option("Без уведомлений"),
+                    dropdown.Option("Каждые 10 секунд"),
+                    dropdown.Option("Каждый час"),
+                    dropdown.Option("Каждые 2 часа"),
+                    dropdown.Option("Каждые 4 часа"),
+                    dropdown.Option("Каждый день"),
+                    dropdown.Option("Раз в неделю")
+                ],
+                value="Без уведомлений"
+            )
+
             # Сохранение привычки
             def save_habit(e):
                 try:
@@ -233,7 +248,8 @@ def build_week_tab(page, refresh_main_callback):
                         "status": status_input.value,
                         "color": color_input.value,
                         "start_date": start_input.value if start_input.value.strip() else None,
-                        "end_date": end_input.value if end_input.value.strip() else None
+                        "end_date": end_input.value if end_input.value.strip() else None,
+                        "notification_interval": notification_input.value
                     })
 
                     # Закрываем диалог
@@ -261,7 +277,10 @@ def build_week_tab(page, refresh_main_callback):
             # Создаём диалог
             dialog = AlertDialog(
                 title=Text("Добавить привычку"),
-                content=Column([title_input, status_input, color_input, start_input, end_input], spacing=10),
+                content=Column(
+                    [title_input, status_input, color_input, start_input, end_input, notification_input],
+                    spacing=10
+                ),
                 actions=[
                     TextButton("Добавить", on_click=save_habit),
                     TextButton("Отмена", on_click=cancel)
@@ -308,6 +327,20 @@ def build_week_tab(page, refresh_main_callback):
             start_input = TextField(label="Дата начала (ГГГГ-ММ-ДД)", value=habit.get("start_date", ""))
             end_input = TextField(label="Дата окончания (ГГГГ-ММ-ДД)", value=habit.get("end_date", ""))
 
+            notification_input = Dropdown(
+                label="Частота уведомлений",
+                options=[
+                    dropdown.Option("Без уведомлений"),
+                    dropdown.Option("Каждые 10 секунд"),
+                    dropdown.Option("Каждый час"),
+                    dropdown.Option("Каждые 2 часа"),
+                    dropdown.Option("Каждые 4 часа"),
+                    dropdown.Option("Каждый день"),
+                    dropdown.Option("Раз в неделю")
+                ],
+                value=habit.get("notification_interval", "Каждый день")
+            )
+
             # Сохранение изменений
             def save_edit(e):
                 try:
@@ -322,7 +355,8 @@ def build_week_tab(page, refresh_main_callback):
                         "status": status_input.value,
                         "color": color_input.value,
                         "start_date": start_input.value if start_input.value.strip() else None,
-                        "end_date": end_input.value if end_input.value.strip() else None
+                        "end_date": end_input.value if end_input.value.strip() else None,
+                        "notification_interval": notification_input.value
                     }
                     db.update_habit(habit["id"], fields)
 
@@ -332,6 +366,7 @@ def build_week_tab(page, refresh_main_callback):
 
                     # Обновляем вид
                     refresh_view()
+                    page.update()
 
                 except Exception as ex:
                     page.snack_bar = SnackBar(content=Text(f"Ошибка сохранения: {str(ex)}"))
@@ -346,7 +381,7 @@ def build_week_tab(page, refresh_main_callback):
             # Создаём диалог
             dialog = AlertDialog(
                 title=Text("Изменить привычку"),
-                content=Column([title_input, status_input, color_input, start_input, end_input], spacing=10),
+                content=Column([title_input, status_input, color_input, start_input, end_input, notification_input], spacing=10),
                 actions=[
                     TextButton("Сохранить", on_click=save_edit),
                     TextButton("Отмена", on_click=cancel)

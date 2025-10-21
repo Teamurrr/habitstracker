@@ -1,7 +1,16 @@
 import flet
-from flet import Page, Column, Row, ElevatedButton, Icons, Container
+from flet import Page, Column, Row, ElevatedButton, Icons, Container, SnackBar, Text
 import db
 from tabs import week_tab, month_tab, charts_tab, settings_tab
+import threading, time
+
+# Добавляем импорт для уведомлений Windows
+try:
+    from plyer import notification
+    PLYER_AVAILABLE = True
+except ImportError:
+    print("Библиотека plyer не установлена. Установите: pip install plyer")
+    PLYER_AVAILABLE = False
 
 def main(page: Page):
     page.title = "Трекер привычек"
@@ -12,11 +21,8 @@ def main(page: Page):
     active_tab = [0]
     content_column = Column(expand=True, spacing=0)
 
-    # def refresh_main(_=None):
-    #     load_tab(active_tab[0])
-
     def refresh_main(_=None):
-        print("Calling refresh_main")  # Отладочный вывод
+        print("Calling refresh_main")
         load_tab(active_tab[0])
 
     def make_tab_button(i, label, icon):
@@ -68,8 +74,64 @@ def main(page: Page):
         spacing=0
     )
 
+    # === Фоновый поток уведомлений ===
+    def notification_loop():
+        while True:
+            try:
+                habits = db.get_all_habits()
+                now = time.time()
+                for h in habits:
+                    interval = h.get("notification_interval", "")
+                    if interval == "Без уведомлений" or not interval:
+                        continue
+
+                    # Определяем интервал в секундах
+                    if interval == "Каждые 10 секунд":
+                        secs = 10
+                    elif interval == "Каждый час":
+                        secs = 3600
+                    elif interval == "Каждые 2 часа":
+                        secs = 7200
+                    elif interval == "Каждые 4 часа":
+                        secs = 14400
+                    elif interval == "Каждый день":
+                        secs = 86400
+                    elif interval == "Раз в неделю":
+                        secs = 604800
+                    else:
+                        continue
+
+                    last = h.get("last_notified", 0) or 0
+                    if now - last >= secs:
+                        # Показываем уведомление Windows
+                        show_windows_notification(h)
+                        db.update_last_notified(h["id"], now)
+                time.sleep(5)
+            except Exception as ex:
+                print("Ошибка уведомлений:", ex)
+                time.sleep(5)
+
+    def show_windows_notification(habit):
+        if not PLYER_AVAILABLE:
+            print(f"Уведомление: {habit['name']} (библиотека plyer недоступна)")
+            return
+            
+        try:
+            notification.notify(
+                title="Трекер привычек - Напоминание",
+                message=f"Пора выполнить: {habit['name']}",
+                timeout=10,  # Уведомление показывается 10 секунд
+                app_name="Трекер привычек"
+            )
+            print(f"Показано уведомление Windows для: {habit['name']}")
+        except Exception as e:
+            print(f"Ошибка показа уведомления Windows: {e}")
+            # Fallback: показываем в консоли
+            print(f"УВЕДОМЛЕНИЕ: Пора выполнить '{habit['name']}'")
+
+    threading.Thread(target=notification_loop, daemon=True).start()
+
     load_tab(0)
     page.add(layout)
-
 
 flet.app(target=main, assets_dir="data")

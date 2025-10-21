@@ -1,0 +1,69 @@
+{
+  "habits": [
+    {
+      "id": 1,
+      "name": "dh",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 2,
+      "name": "пить воду",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 3,
+      "name": "чек",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 4,
+      "name": "check2",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 5,
+      "name": "рпм",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 6,
+      "name": "ап",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 7,
+      "name": "укр",
+      "color": "blue",
+      "start_date": "2025-10-07",
+      "end_date": null,
+      "status": "в процессе"
+    },
+    {
+      "id": 8,
+      "name": "есть мясо",
+      "color": "blue",
+      "start_date": "2025-10-08",
+      "end_date": "2025-10-30",
+      "status": "в процессе"
+    }
+  ],
+  "entries": []
+}

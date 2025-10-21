@@ -11,10 +11,10 @@ def build_settings_tab(page, refresh_main_callback):
         import sqlite3
         con = sqlite3.connect(db.DB_PATH)
         cur = con.cursor()
-        cur.execute("SELECT id, name, color, start_date, end_date, status FROM habits")
-        habits = [dict(zip(["id","name","color","start_date","end_date","status"], r)) for r in cur.fetchall()]
-        cur.execute("SELECT id, habit_id, date, status FROM entries")
-        entries = [dict(zip(["id","habit_id","date","status"], r)) for r in cur.fetchall()]
+        cur.execute("SELECT id, name, color, start_date, end_date, status, notification_interval FROM habits")
+        habits = [dict(zip(["id","name","color","start_date","end_date","status", "notification_interval"], r)) for r in cur.fetchall()]
+        cur.execute("SELECT id, habit_id, date, status, notification_interval FROM entries")
+        entries = [dict(zip(["id","habit_id","date","status", "notification_interval"], r)) for r in cur.fetchall()]
         con.close()
         export = {"habits": habits, "entries": entries}
         path = os.path.join(os.path.dirname(__file__), "..", "data", "export.json")
@@ -37,11 +37,11 @@ def build_settings_tab(page, refresh_main_callback):
         cur = con.cursor()
         # naive import: append habits, entries
         for h in data.get("habits", []):
-            cur.execute("INSERT INTO habits (name, color, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)",
-                (h.get("name"), h.get("color"), h.get("start_date"), h.get("end_date"), h.get("status", 'в процессе')))
+            cur.execute("INSERT INTO habits (name, color, start_date, end_date, status, notification_interval) VALUES (?, ?, ?, ?, ?)",
+                (h.get("name"), h.get("color"), h.get("start_date"), h.get("end_date"), h.get("status", 'в процессе'), h.get("notification_interval")))
         con.commit()
         for en in data.get("entries", []):
-            cur.execute("INSERT OR IGNORE INTO entries (habit_id, date, status) VALUES (?, ?, ?)",
+            cur.execute("INSERT OR IGNORE INTO entries (habit_id, date, status, notification_interval) VALUES (?, ?, ?)",
                         (en.get("habit_id"), en.get("date"), en.get("status")))
         con.commit()
         con.close()

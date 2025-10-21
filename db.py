@@ -17,7 +17,9 @@ def ensure_db():
         color TEXT NOT NULL,
         start_date TEXT,  -- YYYY-MM-DD or NULL
         end_date TEXT,
-        status TEXT CHECK(status IN ('в процессе', 'выполнено', 'заброшено')) NOT NULL DEFAULT 'в процессе'
+        status TEXT CHECK(status IN ('в процессе', 'выполнено', 'заброшено')) NOT NULL DEFAULT 'в процессе',
+        notification_interval TEXT,
+        last_notified REAL DEFAULT 0
     )
     """)
     # entries: id, habit_id, date (YYYY-MM-DD), status (in_progress, done, skipped, overdue)
@@ -41,8 +43,8 @@ def add_habit(habit: Dict[str, Any]) -> int:
     con = get_conn()
     cur = con.cursor()
     cur.execute(
-        "INSERT INTO habits (name, color, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)",
-        (habit["name"], habit["color"], habit.get("start_date"), habit.get("end_date"), habit.get("status"))
+        "INSERT INTO habits (name, color, start_date, end_date, status, notification_interval) VALUES (?, ?, ?, ?, ?, ?)",
+        (habit["name"], habit["color"], habit.get("start_date"), habit.get("end_date"), habit.get("status"), habit.get("notification_interval", "Без уведомлений"))
     )
     hid = cur.lastrowid
     con.commit()
@@ -69,19 +71,19 @@ def delete_habit(habit_id: int):
 def get_all_habits() -> List[Dict]:
     con = get_conn()
     cur = con.cursor()
-    cur.execute("SELECT id, name, color, start_date, end_date, status FROM habits")
+    cur.execute("SELECT id, name, color, start_date, end_date, status, notification_interval, last_notified FROM habits")
     rows = cur.fetchall()
     con.close()
-    return [{"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "status": r[5]} for r in rows]
+    return [{"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "status": r[5], "notification_interval": r[6], "last_notified": r[7]} for r in rows]
 
 def get_habit(hid: int) -> Dict:
     con = get_conn()
     cur = con.cursor()
-    cur.execute("SELECT id, name, color, start_date, end_date, status FROM habits WHERE id=?", (hid,))
+    cur.execute("SELECT id, name, color, start_date, end_date, status, notification_interval, last_notified FROM habits WHERE id=?", (hid,))
     r = cur.fetchone()
     con.close()
     if not r: return None
-    return {"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "status": r[5]}
+    return {"id": r[0], "name": r[1], "color": r[2], "start_date": r[3], "end_date": r[4], "status": r[5], "notification_interval": r[6], "last_notified": r[7]}
 
 def set_entry(habit_id: int, date: str, status: str):
     con = get_conn()
@@ -113,3 +115,10 @@ def get_entries_for_month(year: int, month: int):
     rows = cur.fetchall()
     con.close()
     return [{"id": r[0], "habit_id": r[1], "date": r[2], "status": r[3]} for r in rows]
+
+def update_last_notified(habit_id: int, timestamp: float):
+    con = get_conn()
+    cur = con.cursor()
+    cur.execute("UPDATE habits SET last_notified=? WHERE id=?", (timestamp, habit_id))
+    con.commit()
+    con.close()
