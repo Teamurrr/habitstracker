@@ -122,3 +122,14 @@ def update_last_notified(habit_id: int, timestamp: float):
     cur.execute("UPDATE habits SET last_notified=? WHERE id=?", (timestamp, habit_id))
     con.commit()
     con.close()
+
+def get_entries_for_habit_on_date(habit_id: int, date: str) -> List[Dict]:
+    """
+    Получить все записи для привычки на конкретную дату
+    """
+    con = get_conn()
+    cur = con.cursor()
+    cur.execute("SELECT id, habit_id, date, status FROM entries WHERE habit_id=? AND date=?", (habit_id, date))
+    rows = cur.fetchall()
+    con.close()
+    return [{"id": r[0], "habit_id": r[1], "date": r[2], "status": r[3]} for r in rows]

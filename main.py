@@ -3,6 +3,7 @@ from flet import Page, Column, Row, ElevatedButton, Icons, Container, SnackBar, 
 import db
 from tabs import week_tab, month_tab, charts_tab, settings_tab
 import threading, time
+import datetime
 
 # Добавляем импорт для уведомлений Windows
 try:
@@ -80,10 +81,22 @@ def main(page: Page):
             try:
                 habits = db.get_all_habits()
                 now = time.time()
+                today_str = datetime.date.today().strftime("%Y-%m-%d")
+                
+                print(f"Проверка уведомлений. Всего привычек: {len(habits)}, сегодня: {today_str}")
+                
                 for h in habits:
                     interval = h.get("notification_interval", "")
                     if interval == "Без уведомлений" or not interval:
                         continue
+
+                    # Проверяем, выполнена ли привычка сегодня
+                    today_entries = db.get_entries_for_habit_on_date(h["id"], today_str)
+                    today_done = any(entry["status"] == "done" for entry in today_entries)
+                    
+                    if today_done:
+                        print(f"Привычка '{h['name']}' уже выполнена сегодня - уведомления отключены")
+                        continue  # Пропускаем уведомление, если привычка уже выполнена сегодня
 
                     # Определяем интервал в секундах
                     if interval == "Каждые 10 секунд":
@@ -102,14 +115,18 @@ def main(page: Page):
                         continue
 
                     last = h.get("last_notified", 0) or 0
-                    if now - last >= secs:
-                        # Показываем уведомление Windows
+                    time_since_last = now - last
+                    
+                    if time_since_last >= secs:
+                        print(f"Показываем уведомление для: {h['name']} (интервал: {interval})")
                         show_windows_notification(h)
                         db.update_last_notified(h["id"], now)
-                time.sleep(5)
+                    else:
+                        print(f"Уведомление для '{h['name']}' скоро (через {secs - time_since_last:.0f} сек)")
+                        
             except Exception as ex:
                 print("Ошибка уведомлений:", ex)
-                time.sleep(5)
+            time.sleep(5)
 
     def show_windows_notification(habit):
         if not PLYER_AVAILABLE:
@@ -123,11 +140,9 @@ def main(page: Page):
                 timeout=10,  # Уведомление показывается 10 секунд
                 app_name="Трекер привычек"
             )
-            print(f"Показано уведомление Windows для: {habit['name']}")
+            print(f"✓ Показано уведомление Windows для: {habit['name']}")
         except Exception as e:
             print(f"Ошибка показа уведомления Windows: {e}")
-            # Fallback: показываем в консоли
-            print(f"УВЕДОМЛЕНИЕ: Пора выполнить '{habit['name']}'")
 
     threading.Thread(target=notification_loop, daemon=True).start()
 
