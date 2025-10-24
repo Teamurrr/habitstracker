@@ -75,9 +75,11 @@ def build_month_tab(page, refresh_main_callback):
         entries = db.get_entries_for_month(year, month)
         
         # Create entries map for quick lookup
+        # Create entries map (only completed habits)
         entries_map = {}
         for e in entries:
-            entries_map.setdefault(e["date"], []).append(e)
+            if e["status"] == "done":  # только отмеченные как выполненные
+                entries_map.setdefault(e["date"], []).append(e)
 
         # Build calendar
         cal = calendar.Calendar(firstweekday=0)  # Monday first

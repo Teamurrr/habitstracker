@@ -191,6 +191,14 @@ def build_week_tab(page, refresh_main_callback):
         ds = date_to_str(week_days[day_idx])
         status = "done" if e.control.value else "skipped"
         db.set_entry(habit_id, ds, status)
+        
+        # Определяем статус
+        status = "done" if e.control.value else "skipped"
+        db.set_entry(habit_id, ds, status)
+        
+        # Обновляем только текущий view
+        refresh_view()
+                    
         page.snack_bar = SnackBar(content=Text(f"Статус обновлён для {ds}"))
         page.snack_bar.open = True
         page.update()
@@ -276,6 +284,9 @@ def build_week_tab(page, refresh_main_callback):
 
                     # После закрытия обновляем список привычек
                     refresh_view()
+                    # Обновляем другие вкладки
+                    if refresh_main_callback:
+                        refresh_main_callback()
 
                 except Exception as ex:
                     page.snack_bar = SnackBar(content=Text(f"Ошибка сохранения: {str(ex)}"))
@@ -384,6 +395,9 @@ def build_week_tab(page, refresh_main_callback):
 
                     # Обновляем вид
                     refresh_view()
+                    # Обновляем другие вкладки
+                    if refresh_main_callback:
+                        refresh_main_callback()
                     page.update()
 
                 except Exception as ex:
@@ -424,6 +438,9 @@ def build_week_tab(page, refresh_main_callback):
                 dialog.open = False
                 page.update()
                 refresh_view()
+                # Обновляем другие вкладки
+                if refresh_main_callback:
+                    refresh_main_callback()
                 page.snack_bar = SnackBar(content=Text("Привычка удалена"))
                 page.snack_bar.open = True
                 page.update()
